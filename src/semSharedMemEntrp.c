@@ -284,6 +284,7 @@ static unsigned int addressACustomer (void)
     exit(EXIT_FAILURE);
   }
 
+  unsigned int customer_id;
   queueOut(&(sh->fSt.shop.queue), &customer_id);
 
   if(customer_id >= N){
@@ -444,7 +445,7 @@ static void visitSuppliers (void)
   sh->fSt.st.entrepStat = DELIVERING_PRIME_MATERIALS;
   sh->fSt.shop.primeMatReq = false;
 
-  if(sh->fSt.workshop.NSPMat < NP){
+  if(sh->fSt.workShop.NSPMat < NP){
       sh->fSt.workShop.nPMatIn += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
       sh->fSt.workShop.NTPMat += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat++];
   }
