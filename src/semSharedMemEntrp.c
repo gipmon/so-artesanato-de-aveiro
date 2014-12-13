@@ -222,36 +222,45 @@ static char appraiseSit (void)
      }
 
   /* insert your code here */
-  // senta na cadeira aguardar pedidos de solicitacao - FAZER SLEEP SOBRE A VARIAVEL PROCEED
-  // fazemos isso pondo-a a dormir
+  char nextTask = 'E';
   
-  // se fila de espera n tiver vazia return 'C';
-  // se a flag correspondente da chamada do artesao return P
-  // se a flag de recolha estiver verdadeira return G
-  // se (copiar a funcao toda endOperEntrep) sair com 'E' xit
-  // se n for nenhum destes voltas a dormir
-  
-  // estrutura repetitiva. em algumas situacoes acorda noutras fica cá
-  // estrutura repetitiva quer dizer: while(true se n for E,G,C,P)
-  
-  /*
-   * while(true)
-   *  se puder decisao
-   *   implica decisao e salta fora
-   */
+  while((sh->fSt.shop.nCustIn == 0) &&                                          /* the shop has no customers in and */
+         (sh->fSt.shop.nProdIn == 0) &&                                /* all products in display have been sold and */
+         !sh->fSt.shop.primeMatReq &&                       /* no craftsman has phoned to request prime materials or */
+         !sh->fSt.shop.prodTransfer &&                         /* to ask for a batch of products to be collected and */
+         (sh->fSt.workShop.nProdIn == 0) &&   /* there are no finished products in the storeroom at the workshop and */
+         (sh->fSt.workShop.nPMatIn == 0) &&               /* all prime materials at the workshop have been spent and */
+         (sh->fSt.workShop.NSPMat == NP) &&         /* all the delivers of prime materials have been carried out and */
+         (sh->fSt.workShop.NTPMat == PP*sh->fSt.workShop.NTProd)){
 
-     if (semUp (semgid, sh->access) == -1)                                                   /* exit critical region */
+    if (semUp (semgid, sh->access) == -1)                                                   /* exit critical region */
        { perror ("error on executing the up operation for semaphore access");
          exit (EXIT_FAILURE);
        }
 
-  /* insert your code here  <---- é aqui bloqueia. ta fora da regiao critica */
+    if (semDown (semgid, sh->proceed) == -1)                                                   /* exit critical region */
+       { perror ("error on executing the up operation for semaphore proceed");
+         exit (EXIT_FAILURE);
+       }
 
     if (semDown (semgid, sh->access) == -1)                                                /* enter critical region */
        { perror ("error on executing the down operation for semaphore access");
          exit (EXIT_FAILURE);
        }
 
+    if(!queueEmpty(&sh->fSt.shop.queue)){
+      nextTask = 'C';
+      break;
+    }
+    if(sh->fSt.shop.primeMatReq){
+      nextTask = 'P';
+      break;
+    }
+    if(sh->fSt.shop.prodTransfer){
+      nextTask = 'G';
+      break;
+    }
+  }
   /* insert your code here */
 
   if (semUp (semgid, sh->access) == -1)                                                     /* exit critical region */
@@ -259,7 +268,7 @@ static char appraiseSit (void)
        exit (EXIT_FAILURE);
      }
 
-  return 'E';
+  return nextTask;
 }
 
 /**
