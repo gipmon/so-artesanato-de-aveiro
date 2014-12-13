@@ -210,7 +210,15 @@ static void primeMaterialsNeeded (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  sh->fSt.st.craftStat[craftId].stat = CONTACTING_THE_ENTREPRENEUR;
+  sh->fSt.shop.primeMatReq = true;
+
+  if(semUp(semgid, sh->proceed) == -1){
+    perror ("error on executing the up operation for semaphore proceed");
+    exit (EXIT_FAILURE);
+  }
+
+  saveState(nFic, &(sh->fSt));
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
@@ -233,7 +241,8 @@ static void backToWork (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  sh->fSt.st.craftStat[craftId].stat = FETCHING_PRIME_MATERIALS;
+  saveState(nFic, &(sh->fSt));
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
@@ -256,7 +265,8 @@ static void prepareToProduce (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  sh->fSt.st.craftStat[craftId].stat = PRODUCING_A_NEW_PIECE;
+  saveState(nFic, &(sh->fSt));
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
@@ -281,14 +291,21 @@ static unsigned int goToStore (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  sh->fSt.st.craftStat[craftId].stat = STORING_IT_FOR_TRANSFER;
+
+  sh->fSt.st.craftStat[craftId].prodPieces++;
+  sh->fSt.workShop.nProdIn++;
+  sh->fSt.workShop.NTProd++;
+  saveState(nFic, &(sh->fSt));
+
+  int nProdIn = sh->fSt.workShop.nProdIn;
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
        exit (EXIT_FAILURE);
      }
 
-  return 0;
+  return nProdIn;
 }
 
 /**
@@ -306,7 +323,15 @@ static void batchReadyForTransfer (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  sh->fSt.st.craftStat[craftId].stat = CONTACTING_THE_ENTREPRENEUR;
+  sh->fSt.shop.prodTransfer = true;
+
+  if(semUp(semgid, sh->proceed) == -1){
+    perror("error on executing the up operation for semaphore proceed");
+    exit(EXIT_FAILURE);
+  }
+
+  saveState(nFic, &(sh->fSt));
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
