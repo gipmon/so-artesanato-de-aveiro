@@ -171,28 +171,35 @@ static bool collectMaterials (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  /* insert your code here */
+  while(!sh->fSt.workShop.nPMatIn){
+    sh->nCraftsmenBlk++;
 
     if (semUp (semgid, sh->access) == -1)                                                    /* exit critical region */
        { perror ("error on executing the up operation for semaphore access");
          exit (EXIT_FAILURE);
        }
 
-  /* insert your code here */
+    if(semDown(semgid, sh->waitForMaterials) == -1){
+      perror("error on executing the down operation for semaphore waitForMaterials");
+      exit (EXIT_FAILURE);
+    }
 
     if (semDown (semgid, sh->access) == -1)                                                 /* enter critical region */
        { perror ("error on executing the down operation for semaphore access");
          exit (EXIT_FAILURE);
        }
+  }
 
-  /* insert your code here */
+  sh->fSt.workShop.nPMatIn--;
+  saveState(nFic, &(sh->fSt));
+  bool requires_more_prime_materials = sh->fSt.workShop.NSPMat < NP && sh->fSt.workShop.nPMatIn < PMIN;
 
   if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
        exit (EXIT_FAILURE);
      }
 
-  return true;
+  return requires_more_prime_materials;
 }
 
 /**
