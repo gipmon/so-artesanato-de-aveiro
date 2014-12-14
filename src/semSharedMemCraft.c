@@ -166,38 +166,53 @@ int main (int argc, char *argv[])
 
 static bool collectMaterials (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
-
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
+  
+  /* Enquanto não existir matérias primas na "workshop" para o artesão
+    trabalhar vamos incrementar o número de artesões bloqueados e fazer
+    semDown da flag waitForMaterials. A dona da loja no visitSuppliers vai
+    fazer semUp desta flag e entregar a matéria prima necessária. 
+  */
   while(!sh->fSt.workShop.nPMatIn){
     sh->nCraftsmenBlk++;
 
-    if (semUp (semgid, sh->access) == -1)                                                    /* exit critical region */
-       { perror ("error on executing the up operation for semaphore access");
-         exit (EXIT_FAILURE);
-       }
+    if (semUp (semgid, sh->access) == -1){
+      perror ("error on executing the up operation for semaphore access");
+      exit (EXIT_FAILURE);
+    }
 
     if(semDown(semgid, sh->waitForMaterials) == -1){
       perror("error on executing the down operation for semaphore waitForMaterials");
       exit (EXIT_FAILURE);
     }
 
-    if (semDown (semgid, sh->access) == -1)                                                 /* enter critical region */
-       { perror ("error on executing the down operation for semaphore access");
-         exit (EXIT_FAILURE);
-       }
+    if (semDown (semgid, sh->access) == -1){
+      perror ("error on executing the down operation for semaphore access");
+      exit (EXIT_FAILURE);
+    }
   }
 
+  /* Há matéria prima, então recolhe e decrementa */
   sh->fSt.workShop.nPMatIn--;
   saveState(nFic, &(sh->fSt));
-  bool requires_more_prime_materials = sh->fSt.workShop.NSPMat < NP && sh->fSt.workShop.nPMatIn < PMIN;
+  
+  /* 
+    returns TRUE, if it is necessary to phone the entrepreneur to let her know the workshop requires more prime materials 
+    Se o número de matérias primas na "workshop" é inferior ou igual ao número de matérias primas necessárias para 
+    produzir um produto
+    #FALTA ALGUMA CONDIÇÃO AQUI? (PROF ARTUR)
+  */
+  bool requires_more_prime_materials = sh->fSt.workShop.nPMatIn <= PP;
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */ 
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   return requires_more_prime_materials;
 }
@@ -212,14 +227,23 @@ static bool collectMaterials (unsigned int craftId)
 
 static void primeMaterialsNeeded (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
-
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
+  
+  /* Transição de estado de "FETCHING_PRIME_MATERIALS" para "CONTACTING_THE_ENTREPRENEUR" */
   sh->fSt.st.craftStat[craftId].stat = CONTACTING_THE_ENTREPRENEUR;
+
+  /* Colocar a flag onde sinalizamos que o artesão ligou à dona a informar que 
+    precisa de mais matéria prima */
   sh->fSt.shop.primeMatReq = true;
 
+  /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
+  espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
+  uma das tarefas que a pode acordar é "when a craftsman phones to request more prime materials for the workshop"
+  vamos então fazer um semUp do proceed após sinalizar a flag primeMatReq */
   if(semUp(semgid, sh->proceed) == -1){
     perror ("error on executing the up operation for semaphore proceed");
     exit (EXIT_FAILURE);
@@ -227,10 +251,11 @@ static void primeMaterialsNeeded (unsigned int craftId)
 
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -243,18 +268,21 @@ static void primeMaterialsNeeded (unsigned int craftId)
 
 static void backToWork (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
 
+  /* Transição de estado de "STORING_IT_FOR_TRANSFER" para "FETCHING_PRIME_MATERIALS" */
   sh->fSt.st.craftStat[craftId].stat = FETCHING_PRIME_MATERIALS;
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -267,18 +295,21 @@ static void backToWork (unsigned int craftId)
 
 static void prepareToProduce (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
-
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
+  
+  /* Transição de estado de "FETCHING_PRIME_MATERIALS" para "PRODUCING_A_NEW_PIECE" */
   sh->fSt.st.craftStat[craftId].stat = PRODUCING_A_NEW_PIECE;
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -293,24 +324,33 @@ static void prepareToProduce (unsigned int craftId)
 
 static unsigned int goToStore (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
-
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
+  
+  /* Transição de estado do "PRODUCING_A_NEW_PIECE" para "STORING_IT_FOR_TRANSFER" */
   sh->fSt.st.craftStat[craftId].stat = STORING_IT_FOR_TRANSFER;
 
+  /* O artesão guarda o produto que acabou de fabricar, então vamos
+  incrementar o numero de produtos que produziu (prodPieces), 
+  o número de produtos prontos no armazem (nProdIn) e o número
+  de produtos produzidos (NTProd) */ 
   sh->fSt.st.craftStat[craftId].prodPieces++;
   sh->fSt.workShop.nProdIn++;
   sh->fSt.workShop.NTProd++;
   saveState(nFic, &(sh->fSt));
 
+  /* O método retorna o número de produtos guardados no 
+  armazém */
   int nProdIn = sh->fSt.workShop.nProdIn;
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   return nProdIn;
 }
@@ -325,14 +365,23 @@ static unsigned int goToStore (unsigned int craftId)
 
 static void batchReadyForTransfer (unsigned int craftId)
 {
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
 
+  /* Transição de estado do "STORING_IT_FOR_TRANSFER" para "CONTACTING_THE_ENTREPRENEUR" */
   sh->fSt.st.craftStat[craftId].stat = CONTACTING_THE_ENTREPRENEUR;
+
+  /* Colocar a flag onde sinalizamos que o artesão ligou à dona a informar que 
+    ela pode receber novos produtos */
   sh->fSt.shop.prodTransfer = true;
 
+  /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
+  espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
+  uma das tarefas que a pode acordar é "when a craftsman phones to ask for the collection of a new batch of products."
+  vamos então fazer um semUp do proceed após sinalizar a flag prodTransfer */
   if(semUp(semgid, sh->proceed) == -1){
     perror("error on executing the up operation for semaphore proceed");
     exit(EXIT_FAILURE);
@@ -340,10 +389,11 @@ static void batchReadyForTransfer (unsigned int craftId)
 
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  /* insert your code here */
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
