@@ -255,12 +255,12 @@ static void enterShop(unsigned int custId) {
  */
 
 static unsigned int perusingAround(unsigned int custId) {
-    if (semDown(semgid, sh->access) == -1) /* enter critical region */ {
+    if (semDown(semgid, sh->access) == -1){
         perror("error on executing the down operation for semaphore access");
         exit(EXIT_FAILURE);
     }
-    
     /* insert your code here */
+    
     unsigned int nProd = 0;
     
     if (sh->fSt.shop.nProdIn > 0)
@@ -271,7 +271,8 @@ static unsigned int perusingAround(unsigned int custId) {
         saveState (nFic, &(sh->fSt));
     }
     
-    if (semUp(semgid, sh->access) == -1) /* exit critical region */ {
+    /* insert your code here */
+    if (semUp(semgid, sh->access) == -1){
         perror("error on executing the up operation for semaphore access");
         exit(EXIT_FAILURE);
     }
@@ -289,33 +290,42 @@ static unsigned int perusingAround(unsigned int custId) {
  */
 
 static void iWantThis(unsigned int custId, unsigned int nGoods) {
-    if (semDown(semgid, sh->access) == -1) /* enter critical region */ {
+    if (semDown(semgid, sh->access) == -1){
         perror("error on executing the down operation for semaphore access");
         exit(EXIT_FAILURE);
     }
-
     /* insert your code here */
+    
+    /* Transição de estado do "APPRAISING_OFFER_IN_DISPLAY" para "BUYING_SOME_GOODS" */
     sh->fSt.st.custStat[custId].stat = BUYING_SOME_GOODS;
+    /* Atualizamos o número de produtos comprados */
     sh->fSt.st.custStat[custId].boughtPieces += nGoods;
+    /* Colocamos o cliente na fila de espera para ser atendido pela dona da loja */
     queueIn(&(sh->fSt.shop.queue), custId);
 
+    /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
+    espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
+    uma das tarefas que a pode acordar é "if a customer is needing attention"
+    vamos então fazer um semUp do proceed, o cliente está na fila de espera */
     if (semUp (semgid, sh->proceed) == -1){
         perror("error on executing the up operation for semaphore proceed");
         exit(EXIT_FAILURE);
     }
+    
     saveState (nFic, &(sh->fSt));
 
-    if (semUp(semgid, sh->access) == -1) /* exit critical region */ {
+    if (semUp(semgid, sh->access) == -1){
         perror("error on executing the up operation for semaphore access");
         exit(EXIT_FAILURE);
     }
 
-    /* insert your code here */
+    /* Fazemos down do semáforo waitForService, porque o cliente custId está
+    à espera de serviço, no método sayGoodByeToCustomer a dona da loja vai
+    fazer up */
     if (semDown(semgid, sh->waitForService[custId]) == -1){
         perror("error on the executing down operation for semaphore group waitForService");
         exit(EXIT_FAILURE);
     }
-
 }
 
 /**
@@ -327,22 +337,29 @@ static void iWantThis(unsigned int custId, unsigned int nGoods) {
  */
 
 static void exitShop(unsigned int custId) {
-    if (semDown(semgid, sh->access) == -1) /* enter critical region */ {
+    if (semDown(semgid, sh->access) == -1){
         perror("error on executing the down operation for semaphore access");
         exit(EXIT_FAILURE);
     }
-
     /* insert your code here */
+    
+    /* Transição de estado do "BUYING_SOME_GOODS" para "CARRYING_OUT_DAILY_CHORES" */
     sh->fSt.st.custStat[custId].stat = CARRYING_OUT_DAILY_CHORES;
+    /* Decrementar o número de clientes na loja */
     sh->fSt.shop.nCustIn--;
 
+    /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
+    espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
+    uma das tarefas que a pode acordar é "if a customer is needing attention"
+    vamos então fazer um semUp do proceed */
     if (semUp (semgid, sh->proceed) == -1){
         perror("error on executing the up operation for semaphore proceed");
         exit (EXIT_FAILURE);
     }
     saveState (nFic, &(sh->fSt));
 
-    if (semUp(semgid, sh->access) == -1) /* exit critical region */ {
+    /* insert your code here */
+    if (semUp(semgid, sh->access) == -1){
         perror("error on executing the up operation for semaphore access");
         exit(EXIT_FAILURE);
     }
