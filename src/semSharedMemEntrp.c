@@ -182,21 +182,22 @@ int main (int argc, char *argv[])
  *  The entrepreneur opens the shop and gets ready to perform her duties.
  */
 
-static void prepareToWork (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void prepareToWork (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
+  /* insert your code here */
 
-    sh->fSt.st.entrepStat = WAITING_FOR_NEXT_TASK; // change entrepreneur state
-    sh->fSt.shop.stat = SOPEN; // open the shop
-    saveState(nFic, &(sh->fSt));
+  /* Transição de estado de "OPENING_THE_SHOP" para "WAITING_FOR_NEXT_TASK" */
+  sh->fSt.st.entrepStat = WAITING_FOR_NEXT_TASK; // change entrepreneur state
+  sh->fSt.shop.stat = SOPEN; // open the shop
+  saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -214,17 +215,48 @@ static void prepareToWork (void)
  *  \return \c 'E', if the simulation has come to an end
  */
 
-static char appraiseSit (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
-
+static char appraiseSit (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
   /* insert your code here */
-  char nextTask = 'E';
   
-  while((sh->fSt.shop.nCustIn == 0) &&                                          /* the shop has no customers in and */
+  char nextTask;
+  
+  while(true){
+    if (semUp (semgid, sh->access) == -1){
+      perror ("error on executing the up operation for semaphore access");
+      exit (EXIT_FAILURE);
+    }
+
+    if (semDown (semgid, sh->proceed) == -1){
+      perror ("error on executing the up operation for semaphore proceed");
+      exit (EXIT_FAILURE);
+    }
+
+    if (semDown (semgid, sh->access) == -1){
+      perror ("error on executing the down operation for semaphore access");
+      exit (EXIT_FAILURE);
+    }
+
+    /* if a customer is needing attention */
+    if(!queueEmpty(&sh->fSt.shop.queue)){
+      nextTask = 'C';
+      break;
+    }
+    /* if she should go shopping for prime materials */
+    if(sh->fSt.shop.primeMatReq){
+      nextTask = 'P';
+      break;
+    }
+    /* if she should go to the workshop to collect a new batch of products */
+    if(sh->fSt.shop.prodTransfer){
+      nextTask = 'G';
+      break;
+    }
+    /* if the simulation has come to an end */
+    if((sh->fSt.shop.nCustIn == 0) &&                                          /* the shop has no customers in and */
          (sh->fSt.shop.nProdIn == 0) &&                                /* all products in display have been sold and */
          !sh->fSt.shop.primeMatReq &&                       /* no craftsman has phoned to request prime materials or */
          !sh->fSt.shop.prodTransfer &&                         /* to ask for a batch of products to be collected and */
@@ -232,37 +264,12 @@ static char appraiseSit (void)
          (sh->fSt.workShop.nPMatIn == 0) &&               /* all prime materials at the workshop have been spent and */
          (sh->fSt.workShop.NSPMat == NP) &&         /* all the delivers of prime materials have been carried out and */
          (sh->fSt.workShop.NTPMat == PP*sh->fSt.workShop.NTProd)){
-
-    if (semUp (semgid, sh->access) == -1)                                                   /* exit critical region */
-       { perror ("error on executing the up operation for semaphore access");
-         exit (EXIT_FAILURE);
-       }
-
-    if (semDown (semgid, sh->proceed) == -1)                                                   /* exit critical region */
-       { perror ("error on executing the up operation for semaphore proceed");
-         exit (EXIT_FAILURE);
-       }
-
-    if (semDown (semgid, sh->access) == -1)                                                /* enter critical region */
-       { perror ("error on executing the down operation for semaphore access");
-         exit (EXIT_FAILURE);
-       }
-
-    if(!queueEmpty(&sh->fSt.shop.queue)){
-      nextTask = 'C';
-      break;
-    }
-    if(sh->fSt.shop.primeMatReq){
-      nextTask = 'P';
-      break;
-    }
-    if(sh->fSt.shop.prodTransfer){
-      nextTask = 'G';
+      nextTask = 'E';
       break;
     }
   }
-  /* insert your code here */
 
+  /* insert your code here */
   if (semUp (semgid, sh->access) == -1)                                                     /* exit critical region */
      { perror ("error on executing the up operation for semaphore access");
        exit (EXIT_FAILURE);
@@ -279,12 +286,11 @@ static char appraiseSit (void)
  *  \return the identification of the customer
  */
 
-static unsigned int addressACustomer (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static unsigned int addressACustomer (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.st.entrepStat = ATTENDING_A_CUSTOMER;
 
@@ -303,10 +309,10 @@ static unsigned int addressACustomer (void)
 
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   return customer_id;
 }
@@ -319,12 +325,11 @@ static unsigned int addressACustomer (void)
  *  \param custId identification of the customer
  */
 
-static void sayGoodByeToCustomer (unsigned int custId)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void sayGoodByeToCustomer (unsigned int custId){
+  if (semDown (semgid, sh->access) == -1) {
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.st.entrepStat = WAITING_FOR_NEXT_TASK;
 
@@ -335,11 +340,10 @@ static void sayGoodByeToCustomer (unsigned int custId)
 
   saveState(nFic, &(sh->fSt));
 
-
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -351,19 +355,18 @@ static void sayGoodByeToCustomer (unsigned int custId)
  *  \return -c false, otherwise
  */
 
-static bool customersInTheShop (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static bool customersInTheShop (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
-  bool customer_in_shop = sh->fSt.shop.nCustIn > 0;
+  bool customer_in_shop = sh->fSt.shop.nCustIn != 0;
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   return customer_in_shop;
 }
@@ -374,20 +377,19 @@ static bool customersInTheShop (void)
  *  The entrepreneur closes the door to prevent further customers to come in.
  */
 
-static void closeTheDoor (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void closeTheDoor (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.shop.stat = SDCLOSED;
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -396,21 +398,20 @@ static void closeTheDoor (void)
  *  The entrepreneur closes the shop.
  */
 
-static void prepareToLeave (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void prepareToLeave (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
   
   sh->fSt.st.entrepStat = CLOSING_THE_SHOP;
   sh->fSt.shop.stat = SCLOSED;
   saveState (nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -419,23 +420,25 @@ static void prepareToLeave (void)
  *  The entrepreneur collects a batch of products from the storeroom at the workshop.
  */
 
-static void goToWorkShop (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void goToWorkShop (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.st.entrepStat = COLLECTING_A_BATCH_OF_PRODUCTS;
+  /* soma os produtos do workshop e mete-os na loja */
   sh->fSt.shop.nProdIn += sh->fSt.workShop.nProdIn;
+  /* esvazia o workshop */
   sh->fSt.workShop.nProdIn = 0;
+  /* não há mais produtos para transferir para a loja */
   sh->fSt.shop.prodTransfer = false;
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -444,26 +447,27 @@ static void goToWorkShop (void)
  *  The entrepreneur goes shopping for prime materials and delivers them to the workshop.
  */
 
-static void visitSuppliers (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void visitSuppliers (void){
+  if (semDown (semgid, sh->access) == -1){ 
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.st.entrepStat = DELIVERING_PRIME_MATERIALS;
   sh->fSt.shop.primeMatReq = false;
 
-
   /* atenção a esta condição */
   if(sh->fSt.workShop.NSPMat < NP){
-      sh->fSt.workShop.nPMatIn += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
-      sh->fSt.workShop.NTPMat += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat++];
+    /* fornece a matéria prima pedida pelos artesãos, naquela vez */
+    sh->fSt.workShop.nPMatIn += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
+    sh->fSt.workShop.NTPMat += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
+    sh->fSt.workShop.NSPMat++;
   }
 
   unsigned int idx = 0;
 
   while(sh->nCraftsmenBlk > idx){
+    /* acorda todos os artesãos que estavam à espera de matérias primas */
     if(semUp(semgid, sh->waitForMaterials) == -1){
       perror("error on executing the up operation for waitForMaterials");
       exit(EXIT_FAILURE);
@@ -474,10 +478,10 @@ static void visitSuppliers (void)
   sh->nCraftsmenBlk = 0;
   saveState(nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -486,20 +490,19 @@ static void visitSuppliers (void)
  *  The entrepreneur goes back to the shop.
  */
 
-static void returnToShop (void)
-{
-  if (semDown (semgid, sh->access) == -1)                                                   /* enter critical region */
-     { perror ("error on executing the down operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+static void returnToShop (void){
+  if (semDown (semgid, sh->access) == -1){
+    perror ("error on executing the down operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 
   sh->fSt.st.entrepStat = OPENING_THE_SHOP;
   saveState (nFic, &(sh->fSt));
 
-  if (semUp (semgid, sh->access) == -1)                                                      /* exit critical region */
-     { perror ("error on executing the up operation for semaphore access");
-       exit (EXIT_FAILURE);
-     }
+  if (semUp (semgid, sh->access) == -1){
+    perror ("error on executing the up operation for semaphore access");
+    exit (EXIT_FAILURE);
+  }
 }
 
 /**
@@ -538,7 +541,7 @@ static bool endOperEntrep (void)
        exit (EXIT_FAILURE);
      }
 
-  stat = true;                               /*         <---            remove this instruction for normal operation */
+  //stat = true;                               /*         <---            remove this instruction for normal operation */
   return stat;
 }
 

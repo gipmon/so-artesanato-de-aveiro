@@ -197,7 +197,7 @@ static bool collectMaterials (unsigned int craftId)
   }
 
   /* Há matéria prima, então recolhe e decrementa */
-  sh->fSt.workShop.nPMatIn--;
+  sh->fSt.workShop.nPMatIn -= PP;
   saveState(nFic, &(sh->fSt));
   
   /* 
@@ -206,7 +206,7 @@ static bool collectMaterials (unsigned int craftId)
     produzir um produto
     #FALTA ALGUMA CONDIÇÃO AQUI? (PROF ARTUR)
   */
-  bool requires_more_prime_materials = sh->fSt.workShop.nPMatIn <= PP;
+  bool requires_more_prime_materials = (sh->fSt.workShop.nPMatIn < PMIN);
 
   /* insert your code here */ 
   if (semUp (semgid, sh->access) == -1){
@@ -448,7 +448,7 @@ static bool endOperCraftsman (unsigned int craftId)
        exit (EXIT_FAILURE);
      }
 
-  stat = true;                               /*         <---            remove this instruction for normal operation */
+  //stat = true;                               /*         <---            remove this instruction for normal operation */
   return stat;
 }
 

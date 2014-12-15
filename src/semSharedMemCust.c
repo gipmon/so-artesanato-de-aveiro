@@ -164,17 +164,18 @@ int main(int argc, char *argv[]) {
  */
 
 static void goShopping(unsigned int custId) {
-    if (semDown(semgid, sh->access) == -1) /* enter critical region */ {
+    if (semDown(semgid, sh->access) == -1){
         perror("error on executing the down operation for semaphore access");
         exit(EXIT_FAILURE);
     }
-
     /* insert your code here */
+
+    /* Transição de estado de "CARRYING_OUT_DAILY_CHORES" para "CHECKING_SHOP_DOOR_OPEN" */
     sh->fSt.st.custStat[custId].stat = CHECKING_SHOP_DOOR_OPEN;
     saveState(nFic,&(sh->fSt));
 
-
-    if (semUp(semgid, sh->access) == -1) /* exit critical region */ {
+    /* insert your code here */
+    if (semUp(semgid, sh->access) == -1){
         perror("error on executing the up operation for semaphore access");
         exit(EXIT_FAILURE);
     }
@@ -192,13 +193,12 @@ static void goShopping(unsigned int custId) {
  */
 
 static bool isDoorOpen(unsigned int custId) {
-    if (semDown(semgid, sh->access) == -1) /* enter critical region */ {
+    if (semDown(semgid, sh->access) == -1){
         perror("error on executing the down operation for semaphore access");
         exit(EXIT_FAILURE);
     }
-
     /* insert your code here */
-    
+
     return sh->fSt.shop.stat == SOPEN;
 }
 
@@ -210,13 +210,16 @@ static bool isDoorOpen(unsigned int custId) {
  *  \param custId identification of the customer
  */
 
-static void tryAgainLater(unsigned int custId) {
+static void tryAgainLater(unsigned int custId){
+    /* O isDoorOpen faz um semDown para entrar na região crítica e não faz semUP */
 
     /* insert your code here */
-    sh->fSt.st.custStat[custId].stat = CARRYING_OUT_DAILY_CHORES;
-    saveState(nFic,&(sh->fSt));
 
-    if (semUp(semgid, sh->access) == -1) /* exit critical region */ {
+    /* Transição de estado de "CHECKING_SHOP_DOOR_OPEN" para "CARRYING_OUT_DAILY_CHORES" */
+    sh->fSt.st.custStat[custId].stat = CARRYING_OUT_DAILY_CHORES;
+    saveState(nFic, &(sh->fSt));
+
+    if (semUp(semgid, sh->access) == -1){
         perror("error on executing the up operation for semaphore access");
         exit(EXIT_FAILURE);
     }
@@ -231,9 +234,13 @@ static void tryAgainLater(unsigned int custId) {
  */
 
 static void enterShop(unsigned int custId) {
+    /* O isDoorOpen faz um semDown para entrar na região crítica e não faz semUP */
 
     /* insert your code here */
+
+    /* Transição de estado de "CHECKING_SHOP_DOOR_OPEN" para "APPRAISING_OFFER_IN_DISPLAY" */
     sh->fSt.st.custStat[custId].stat = APPRAISING_OFFER_IN_DISPLAY;
+    /* Increments the number of customers */
     sh->fSt.shop.nCustIn++;
     saveState(nFic,&(sh->fSt));
     
@@ -263,9 +270,13 @@ static unsigned int perusingAround(unsigned int custId) {
     
     unsigned int nProd = 0;
     
-    if (sh->fSt.shop.nProdIn > 0)
+    /* Pega um número aleatório de produtos */
+    if (sh->fSt.shop.nProdIn > 0){
         nProd = pickUp();
+    }
     
+    /* Se o número de produtos seleccionados para levar for diferente de zero,
+      então vamos decrementar esse mesmo número, aos produtos disponiveis em loja */
     if(nProd != 0){
         sh->fSt.shop.nProdIn -= nProd;
         saveState (nFic, &(sh->fSt));
@@ -306,7 +317,8 @@ static void iWantThis(unsigned int custId, unsigned int nGoods) {
     /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
     espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
     uma das tarefas que a pode acordar é "if a customer is needing attention"
-    vamos então fazer um semUp do proceed, o cliente está na fila de espera */
+    vamos então fazer um semUp do proceed, o cliente está na fila de espera, entrepreneur
+    addressACustomer  */
     if (semUp (semgid, sh->proceed) == -1){
         perror("error on executing the up operation for semaphore proceed");
         exit(EXIT_FAILURE);
@@ -351,7 +363,7 @@ static void exitShop(unsigned int custId) {
     /* No semSharedMemEntrp, appraiseSit a dona da empresa está sentada à
     espera que algum serviço a "acorde", é feito um semDown do proceed, portanto
     uma das tarefas que a pode acordar é "if a customer is needing attention"
-    vamos então fazer um semUp do proceed */
+    vamos então fazer um semUp do proceed, entrepreneur sayGoodByeToCustomer */
     if (semUp (semgid, sh->proceed) == -1){
         perror("error on executing the up operation for semaphore proceed");
         exit (EXIT_FAILURE);
@@ -408,8 +420,8 @@ static bool endOperCustomer(unsigned int custId) {
         exit(EXIT_FAILURE);
     }
 
-    pickUp(); /*         <---            remove this instruction for normal operation */
-    stat = true; /*         <---            remove this instruction for normal operation */
+    //pickUp(); /*         <---            remove this instruction for normal operation */
+    //stat = true; /*         <---            remove this instruction for normal operation */
     return stat;
 }
 
