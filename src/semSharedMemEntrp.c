@@ -231,7 +231,7 @@ static char appraiseSit (void){
     }
 
     if (semDown (semgid, sh->proceed) == -1){
-      perror ("error on executing the up operation for semaphore proceed");
+      perror ("error on executing the down operation for semaphore proceed");
       exit (EXIT_FAILURE);
     }
 
