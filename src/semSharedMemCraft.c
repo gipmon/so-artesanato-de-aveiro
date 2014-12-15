@@ -197,7 +197,7 @@ static bool collectMaterials (unsigned int craftId)
   }
 
   /* Há matéria prima, então recolhe e decrementa */
-  sh->fSt.workShop.nPMatIn -= PP;
+  sh->fSt.workShop.nPMatIn = sh->fSt.workShop.nPMatIn - PP;
   saveState(nFic, &(sh->fSt));
   
   /* 

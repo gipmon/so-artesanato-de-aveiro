@@ -460,8 +460,7 @@ static void visitSuppliers (void){
   if(sh->fSt.workShop.NSPMat < NP){
     /* fornece a matéria prima pedida pelos artesãos, naquela vez */
     sh->fSt.workShop.nPMatIn += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
-    sh->fSt.workShop.NTPMat += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat];
-    sh->fSt.workShop.NSPMat++;
+    sh->fSt.workShop.NTPMat += sh->fSt.primeMaterials[sh->fSt.workShop.NSPMat++];
   }
 
   unsigned int idx = 0;
